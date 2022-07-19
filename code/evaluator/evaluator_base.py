@@ -2,8 +2,8 @@
 # For License information please see the LICENSE file in the root directory.
 
 import numpy as np
-from trajectory_transform import trajectory_transform, rescale
-from transformation import pos_quats2SE_matrices, SE2pos_quat
+from evaluator.trajectory_transform import trajectory_transform, rescale
+from evaluator.transformation import pos_quats2SE_matrices, SE2pos_quat
 
 np.set_printoptions(suppress=True, precision=2, threshold=100000)
 
@@ -58,7 +58,7 @@ class ATEEvaluator(object):
 
 # =======================
 
-from evaluate_rpe import evaluate_trajectory
+from evaluator.evaluate_rpe import evaluate_trajectory
 
 
 class RPEEvaluator(object):
@@ -81,7 +81,7 @@ class RPEEvaluator(object):
 
 # =======================
 
-from evaluate_kitti import evaluate as kittievaluate
+from evaluator.evaluate_kitti import evaluate as kittievaluate
 
 
 class KittiEvaluator(object):

@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from attack import Attack
+from attacks.attack import Attack
 import time
 import cv2
 from Datasets.tartanTrajFlowDataset import extract_traj_data

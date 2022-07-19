@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from attack import Attack
 import time
 from tqdm import tqdm
 import cv2
+from attacks.attack import Attack
 
 
 class PGD(Attack):

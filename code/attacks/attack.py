@@ -2,10 +2,9 @@ import torch
 from torch.nn import functional as F
 import kornia.geometry as kgm
 import kornia.filters as kf
+import numpy as np
 from Datasets.tartanTrajFlowDataset import extract_traj_data
 from loss import test_model
-import numpy as np
-
 
 class Attack:
     def __init__(self, model, criterion, test_criterion, norm, data_shape,

@@ -2,9 +2,8 @@
 
 import torch
 
-import cupy
 import re
-
+import cupy
 kernel_Correlation_rearrange = '''
 	extern "C" __global__ void kernel_Correlation_rearrange(
 		const int n,

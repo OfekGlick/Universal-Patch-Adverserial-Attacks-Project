@@ -2,7 +2,7 @@
 # For License information please see the LICENSE file in the root directory.
 
 import numpy as np
-import transformation as tf
+import evaluator.transformation as tf
 
 
 def shift0(traj):

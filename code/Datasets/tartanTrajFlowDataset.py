@@ -397,11 +397,9 @@ class MultiTrajFolderDatasetCustom(Dataset):
 
         self.rootfolder = rootfolder
         rootfolder_files = listdir(rootfolder)
-
         if processed_data_folder is None:
             processed_data_folder = rootfolder + '_processed'
         self.processed_data_folder = processed_data_folder
-
         if not isdir(processed_data_folder):
             preprocessed_data = False
             mkdir(processed_data_folder)
@@ -618,7 +616,6 @@ class MultiTrajFolderDatasetCustom(Dataset):
         mask_list = [ku.image_to_tensor(mask).ge(0.5).repeat(3, 1, 1) for mask in mask_list]
 
         mask_tensor = torch.stack(mask_list)
-
         return traj_len, img1_I0_tensor, img2_I0_tensor, intrinsic_I0_tensor, \
                img1_I1_tensor, img2_I1_tensor, intrinsic_I1_tensor, \
                motions, scales, poses_quat, patch_rel_pose, perspective, mask_tensor

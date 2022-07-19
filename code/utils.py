@@ -45,7 +45,8 @@ def parse_args():
                         help='test trajectory folder where the RGB images are (default: None)')
     parser.add_argument('--processed_data_dir', default=None,
                         help='folder to save processed dataset tensors (default: None)')
-    parser.add_argument('--preprocessed_data', action='store_true', default=False,
+    # need to change back to false
+    parser.add_argument('--preprocessed_data', action='store_true', default=True,
                         help='use preprocessed data in processed_data_dir (default: False)')
     parser.add_argument('--max_traj_len', type=int, default=8,
                         help='maximal amount of frames to load in each trajectory (default: 500)')
