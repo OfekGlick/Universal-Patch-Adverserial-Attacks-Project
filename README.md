@@ -1,3 +1,5 @@
 # Universal-Patch-Adverserial-Attacks-Project
 Deep Learning final project
-hguyfuyf
+
+New ideas for attacks:
+1. 
