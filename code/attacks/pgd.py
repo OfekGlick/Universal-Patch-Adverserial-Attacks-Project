@@ -139,7 +139,7 @@ class PGD(Attack):
         return grad.to(device)
 
     def perturb(self, data_loader, y_list, eps,
-                targeted=False, device=None, eval_data_loader=None, eval_y_list=None):
+                targeted=False, device=None, eval_data_loader=None, eval_y_list=None,momentum = 0.5):
 
         a_abs = np.abs(eps / self.n_iter) if self.alpha is None else np.abs(self.alpha)
         multiplier = -1 if targeted else 1
@@ -177,7 +177,7 @@ class PGD(Attack):
                 iter_start_time = time.time()
 
                 pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
-                                                 multiplier, a_abs, eps, device=device)
+                                                 multiplier, a_abs, eps, device=device,momentum = momentum)
 
                 step_runtime = time.time() - iter_start_time
                 print(" optimization epoch finished, epoch runtime: " + str(step_runtime))

@@ -97,7 +97,7 @@ def parse_args():
                         help='Trajectory window stride for optimizing attacks (default: whole window)')
     parser.add_argument('--load_attack', default=None,
                         help='path to load previously computed perturbation (default: "")')
-
+    parser.add_argument('--momentum',type = float,defualt = 0.00)
     args = parser.parse_args()
     # print("args")
     # print(args)

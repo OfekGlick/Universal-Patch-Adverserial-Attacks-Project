@@ -637,7 +637,7 @@ def run_attacks_train(args):
 
 
     best_pert, clean_loss_list, all_loss_list, all_best_loss_list = \
-        attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device)
+        attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device,momentum = args.momentum)
 
     print("clean_loss_list")
     print(clean_loss_list)

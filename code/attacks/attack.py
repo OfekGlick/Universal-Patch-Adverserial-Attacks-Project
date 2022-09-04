@@ -6,6 +6,7 @@ import numpy as np
 from Datasets.tartanTrajFlowDataset import extract_traj_data
 from loss import test_model
 
+
 class Attack:
     def __init__(self, model, criterion, test_criterion, norm, data_shape,
                  sample_window_size=None, sample_window_stride=None,
@@ -30,6 +31,8 @@ class Attack:
             self.perturb_model = self.perturb_model_split
 
         self.pert_padding = pert_padding
+        self.grad_momentum = None
+        self.grads_so_far = 0
 
     def random_initialization(self, pert, eps):
         if self.norm == 'Linf':
@@ -393,7 +396,7 @@ class Attack:
             return loss_tot, loss_list
 
     def gradient_ascent_step(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                             multiplier, a_abs, eps, device=None):
+                             multiplier, a_abs, eps, device=None, momentum=0.5):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
         grad_tot = torch.zeros_like(pert, requires_grad=False)
@@ -433,8 +436,13 @@ class Attack:
             torch.cuda.empty_cache()
 
         with torch.no_grad():
-            grad = self.normalize_grad(grad_tot)
-            pert += multiplier * a_abs * grad
+            # grad = self.normalize_grad(grad_tot)
+            grad_tot = torch.stack(grad_tot).mean(dim=0)
+            if self.grad_momentum is None:
+                self.grad_momentum = (1 - momentum) * grad_tot
+            else:
+                self.grad_momentum = momentum * self.grad_momentum + (1 - momentum) * grad_tot
+            pert += multiplier * a_abs * self.grad_momentum
             pert = self.project(pert, eps)
 
         return pert
