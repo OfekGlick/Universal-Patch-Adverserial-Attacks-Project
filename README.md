@@ -7,3 +7,4 @@ Need to do:
 One idea is to use the pertubation with the highest ratio between it to clean.
 3. Find a way to use the rotation matrix in the loss critria.
 4. Test the ADAM optimizer preformance in the current setting.
+5.Try and understand APGD.
