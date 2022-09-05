@@ -688,12 +688,10 @@ def main():
     args = get_args()
     if args.attack is None:
         return test_clean(args)
-    with open('results.txt', 'w') as f:
-        for momentum in [0.95,0.9,0.7,0.5,0.3]:
-            args.momentum = momentum
-            run_value = run_attacks_train(args)
-            f.write(f'The value for {momentum} is {run_value}\n')
-            f.flush()
+    with open('base_with_true_vo_100_iterations.txt', 'w') as f:
+        run_value = run_attacks_train(args)
+        f.write(f'The value for is {run_value}\n')
+        f.flush()
 
 
 if __name__ == '__main__':
