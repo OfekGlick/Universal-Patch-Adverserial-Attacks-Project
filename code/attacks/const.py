@@ -84,7 +84,7 @@ class Const(Attack):
         print(str(clean_loss_sum))
         opt_runtime = time.time() - opt_start_time
         print("optimization restart finished, optimization runtime: " + str(opt_runtime))
-        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss
+        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss,best_loss_sum
 
     def perturb_model_single(self, pert, img1_I0, img2_I0, intrinsic_I0, img1_delta, img2_delta, scale, mask1, mask2,
                              perspective1, perspective2, device=None):

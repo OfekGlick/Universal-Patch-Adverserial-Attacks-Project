@@ -47,7 +47,8 @@ class TartanVO(object):
 
         # load the whole model
         if model_name.endswith('.pkl'):
-            modelname = 'models/' + model_name
+            #TODO: change back to models
+            modelname = 'code/models/' + model_name
             self.load_model(self.vonet, modelname)
 
         self.vonet.to(device=device)

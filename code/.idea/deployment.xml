@@ -12,7 +12,7 @@
       <paths name="yehonatan-pe@132.68.39.159:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/yehonatan-pe/Project/yoni_new" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/yehonatan-pe/Project/yoni_new/code" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

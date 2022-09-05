@@ -399,8 +399,8 @@ class Attack:
                              multiplier, a_abs, eps, device=None, momentum=0.5):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
-        grad_tot = torch.zeros_like(pert, requires_grad=False)
-
+        #grad_tot = torch.zeros_like(pert, requires_grad=False)
+        grad_tot = []
         for data_idx, data in enumerate(data_loader):
             dataset_idx, dataset_name, traj_name, traj_len, \
             img1_I0, img2_I0, intrinsic_I0, \
@@ -416,7 +416,7 @@ class Attack:
             grad = grad.sum(dim=0, keepdims=True).detach()
 
             with torch.no_grad():
-                grad_tot += grad
+                grad_tot.append(grad)
 
             del grad
             del img1_I0

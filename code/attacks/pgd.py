@@ -218,4 +218,4 @@ class PGD(Attack):
 
             opt_runtime = time.time() - opt_start_time
             print("optimization restart finished, optimization runtime: " + str(opt_runtime))
-        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss
+        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss,best_loss_sum

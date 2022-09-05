@@ -5,7 +5,7 @@ from pathlib import Path
 import cv2
 import torch
 import matplotlib.pyplot as plt
-
+import pickle
 from utils import get_args
 import numpy as np
 from Datasets.utils import plot_traj, visflow
@@ -636,7 +636,7 @@ def run_attacks_train(args):
     traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list = tuple(traj_clean_criterions_list)
 
 
-    best_pert, clean_loss_list, all_loss_list, all_best_loss_list = \
+    best_pert, clean_loss_list, all_loss_list, all_best_loss_list,best_lost_sum = \
         attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device,momentum = args.momentum)
 
     print("clean_loss_list")
@@ -676,7 +676,7 @@ def run_attacks_train(args):
     report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                          traj_clean_rms_list, traj_adv_rms_list,
                          args.save_csv, args.output_dir, crit_str="rms")
-
+    return best_lost_sum
 
 def test_clean(args):
     print("Testing the visual odometer on the I1 albedo image compared to the clean I0 albedo image, "
@@ -688,7 +688,12 @@ def main():
     args = get_args()
     if args.attack is None:
         return test_clean(args)
-    return run_attacks_train(args)
+    with open('results.txt', 'w') as f:
+        for momentum in [0.95,0.9,0.7,0.5,0.3]:
+            args.momentum = momentum
+            run_value = run_attacks_train(args)
+            f.write(f'The value for {momentum} is {run_value}\n')
+            f.flush()
 
 
 if __name__ == '__main__':
