@@ -44,8 +44,7 @@ def save_flow_imgs(flow, flowdir, visflow, dataset_name, traj_name, save_dir_suf
 
 
 def save_poses_se(motions, pose_quat_gt, pose_dir, plot_est=True, plot_gt=True, sc=0.05,
-               dataset_name="dataset_dir", traj_name="traj_dir", save_dir_suffix='_clean'):
-
+                  dataset_name="dataset_dir", traj_name="traj_dir", save_dir_suffix='_clean'):
     pose_save_dir = pose_dir + '/' + dataset_name
     if not isdir(pose_save_dir):
         mkdir(pose_save_dir)
@@ -67,9 +66,9 @@ def save_poses_se(motions, pose_quat_gt, pose_dir, plot_est=True, plot_gt=True, 
     fig_traj = plt.figure()
     ax = fig_traj.add_subplot(projection='3d')
     if plot_est:
-        ax.scatter(poses[:, 0, -1], poses[:, 1, -1], poses[:, 2, -1], s=15, color=(1,0,1))
+        ax.scatter(poses[:, 0, -1], poses[:, 1, -1], poses[:, 2, -1], s=15, color=(1, 0, 1))
     if plot_gt:
-        ax.scatter(gt_poses[:, 0, -1], gt_poses[:, 1, -1], gt_poses[:, 2, -1], s=15, color=(1,0,0,alpha))
+        ax.scatter(gt_poses[:, 0, -1], gt_poses[:, 1, -1], gt_poses[:, 2, -1], s=15, color=(1, 0, 0, alpha))
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
@@ -78,27 +77,29 @@ def save_poses_se(motions, pose_quat_gt, pose_dir, plot_est=True, plot_gt=True, 
     ylims = np.abs(ylims[1] - ylims[0])
     zlims = np.abs(zlims[1] - zlims[0])
 
-
     t_norm = []
     for p_idx, (p_gt, p) in enumerate(zip(gt_poses, poses)):
         tgt = p_gt[0:3, -1].reshape((3, 1))
         t = p[0:3, -1].reshape((3, 1))
-        t_norm.append(np.linalg.norm(t-tgt))
+        t_norm.append(np.linalg.norm(t - tgt))
         if p_idx % factor == 0:
             if plot_est:
                 ax.plot([p[0, -1], p[0, -1] + sc * xlims * p[0, 0]], [p[1, -1], p[1, -1] + sc * ylims * p[1, 0]],
-                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 0]], color=(1,0,1))
+                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 0]], color=(1, 0, 1))
                 ax.plot([p[0, -1], p[0, -1] + sc * xlims * p[0, 1]], [p[1, -1], p[1, -1] + sc * ylims * p[1, 1]],
-                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 1]], color=(0,1,1))
+                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 1]], color=(0, 1, 1))
                 ax.plot([p[0, -1], p[0, -1] + sc * xlims * p[0, 2]], [p[1, -1], p[1, -1] + sc * ylims * p[1, 2]],
-                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 2]], color=(0.5,0.5,0.5))
+                        zs=[p[2, -1], p[2, -1] + sc * zlims * p[2, 2]], color=(0.5, 0.5, 0.5))
             if plot_gt:
-                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 0]], [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 0]],
-                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 0]], color=(1,0,0,alpha))
-                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 1]], [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 1]],
-                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 1]], color=(0,1,0,alpha))
-                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 2]], [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 2]],
-                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 2]], color=(0,0,1,alpha))
+                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 0]],
+                        [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 0]],
+                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 0]], color=(1, 0, 0, alpha))
+                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 1]],
+                        [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 1]],
+                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 1]], color=(0, 1, 0, alpha))
+                ax.plot([p_gt[0, -1], p_gt[0, -1] + sc * xlims * p_gt[0, 2]],
+                        [p_gt[1, -1], p_gt[1, -1] + sc * ylims * p_gt[1, 2]],
+                        zs=[p_gt[2, -1], p_gt[2, -1] + sc * zlims * p_gt[2, 2]], color=(0, 0, 1, alpha))
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -125,7 +126,7 @@ def save_img_tensors(img1, img2, path, names=None):
             imgs_num += 1
         names = [str(idx) for idx in range(imgs_num)]
     for img_idx, img in enumerate(img1):
-        save_image(img, path + '/' + names[img_idx] +'.png')
+        save_image(img, path + '/' + names[img_idx] + '.png')
     if img2 is not None:
         save_image(img2[-1], path + '/' + names[-1] + '.png')
 
@@ -335,7 +336,6 @@ def test_clean_multi_inputs(args):
         # print("traj_mask_l0_ratio")
         # print(traj_mask_l0_ratio)
 
-
         dataset_idx_list.append(dataset_idx)
         dataset_name_list.append(dataset_name)
         traj_name_list.append(traj_name)
@@ -354,8 +354,8 @@ def test_clean_multi_inputs(args):
             for crit_idx, crit_result in enumerate(crit_results):
                 crit_result_list = crit_result.tolist()
                 traj_clean_criterions_list[crit_idx].append(crit_result_list)
-                #print(args.criterions_names[crit_idx] + " for trajectory: " + traj_name)
-                #print(crit_result_list)
+                # print(args.criterions_names[crit_idx] + " for trajectory: " + traj_name)
+                # print(crit_result_list)
                 for frame_idx, frame_clean_crit in enumerate(crit_result_list):
                     frames_clean_criterions_list[crit_idx][frame_idx].append(frame_clean_crit)
             del crit_results
@@ -365,7 +365,7 @@ def test_clean_multi_inputs(args):
 
         if args.save_pose:
             save_poses_se(motions, pose_quat_gt, args.pose_dir,
-                       dataset_name=dataset_name, traj_name=traj_name, save_dir_suffix='_clean')
+                          dataset_name=dataset_name, traj_name=traj_name, save_dir_suffix='_clean')
 
         traj_clean_motions.append(motions)
         traj_motions_scales.append(scale_gt.numpy())
@@ -388,9 +388,11 @@ def test_clean_multi_inputs(args):
     for crit_idx, frames_clean_crit_list in enumerate(frames_clean_criterions_list):
         frames_clean_crit_mean = [np.mean(crit_list) for crit_list in frames_clean_crit_list]
         frames_clean_crit_std = [np.std(crit_list) for crit_list in frames_clean_crit_list]
-        print("frames_clean_" + args.criterions_names[crit_idx] + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+        print("frames_clean_" + args.criterions_names[crit_idx] + "_mean over all (" + str(
+            len(traj_name_list)) + ") trajectories:")
         print(frames_clean_crit_mean)
-        print("frames_clean_" + args.criterions_names[crit_idx] + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
+        print("frames_clean_" + args.criterions_names[crit_idx] + "_std over all (" + str(
+            len(traj_name_list)) + ") trajectories:")
         print(frames_clean_crit_std)
 
     traj_mask_l0_ratio_mean = np.mean(traj_mask_l0_ratio_list)
@@ -456,17 +458,16 @@ def test_adv_trajectories(dataloader, model, motions_target_list, attack, pert,
                 traj_adv_criterions_list[crit_idx].append(crit_result.tolist())
             del crit_results
 
-
         if save_imgs:
             save_adv_imgs(adv_img_dir, adv_pert_dir, dataset_name, traj_name,
-                          img1_adv,  img2_adv, traj_pert)
+                          img1_adv, img2_adv, traj_pert)
 
         if save_flow:
             save_flow_imgs(flow_adv, flowdir, visflow, dataset_name, traj_name, save_dir_suffix='_adv')
 
         if save_pose:
             save_poses_se(motions_adv, pose_quat_gt, pose_dir,
-                       dataset_name=dataset_name, traj_name=traj_name, save_dir_suffix='_adv')
+                          dataset_name=dataset_name, traj_name=traj_name, save_dir_suffix='_adv')
 
         del motions_adv
         del flow_adv
@@ -583,25 +584,34 @@ def report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, tr
     frames_delta_ratio_crit_mean = [np.mean(crit_list) for crit_list in frames_delta_ratio_crit_list]
     frames_delta_ratio_crit_std = [np.std(crit_list) for crit_list in frames_delta_ratio_crit_list]
 
-    print("frames_clean_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print("frames_clean_" + experiment_name + crit_str + "_mean over all (" + str(
+        len(traj_name_list)) + ") trajectories:")
     print(frames_clean_crit_mean)
-    print("frames_clean_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print(
+        "frames_clean_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
     print(frames_clean_crit_std)
-    print("frames_adv_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print(
+        "frames_adv_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
     print(frames_adv_crit_mean)
     print("frames_adv_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
     print(frames_adv_crit_std)
-    print("frames_delta_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print("frames_delta_" + experiment_name + crit_str + "_mean over all (" + str(
+        len(traj_name_list)) + ") trajectories:")
     print(frames_delta_crit_mean)
-    print("frames_delta_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print(
+        "frames_delta_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
     print(frames_delta_crit_std)
-    print("frames_ratio_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print("frames_ratio_" + experiment_name + crit_str + "_mean over all (" + str(
+        len(traj_name_list)) + ") trajectories:")
     print(frames_ratio_crit_mean)
-    print("frames_ratio_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print(
+        "frames_ratio_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
     print(frames_ratio_crit_std)
-    print("frames_delta_ratio_" + experiment_name + crit_str + "_mean over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print("frames_delta_ratio_" + experiment_name + crit_str + "_mean over all (" + str(
+        len(traj_name_list)) + ") trajectories:")
     print(frames_delta_ratio_crit_mean)
-    print("frames_delta_ratio_" + experiment_name + crit_str + "_std over all (" + str(len(traj_name_list)) + ") trajectories:")
+    print("frames_delta_ratio_" + experiment_name + crit_str + "_std over all (" + str(
+        len(traj_name_list)) + ") trajectories:")
     print(frames_delta_ratio_crit_std)
 
     del frames_clean_crit_list
@@ -635,9 +645,9 @@ def run_attacks_train(args):
     traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
     traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list = tuple(traj_clean_criterions_list)
 
-
-    best_pert, clean_loss_list, all_loss_list, all_best_loss_list,best_lost_sum = \
-        attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device,momentum = args.momentum)
+    best_pert, clean_loss_list, all_loss_list, all_best_loss_list, best_lost_sum = \
+        attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device,
+                       momentum=args.momentum)
 
     print("clean_loss_list")
     print(clean_loss_list)
@@ -678,6 +688,7 @@ def run_attacks_train(args):
                          args.save_csv, args.output_dir, crit_str="rms")
     return best_lost_sum
 
+
 def test_clean(args):
     print("Testing the visual odometer on the I1 albedo image compared to the clean I0 albedo image, "
           "I1 is set as the adversarial perturbation")
@@ -685,13 +696,14 @@ def test_clean(args):
 
 
 def main():
-    args = get_args()
+    with open('momentum_0.9.txt', 'w') as f:
+        args = get_args()
+        run_value = run_attacks_train(args)
+        f.write(f'The value with simple momentum is {run_value}\n')
+        f.flush()
     if args.attack is None:
         return test_clean(args)
-    with open('base_with_true_vo_100_iterations.txt', 'w') as f:
-        run_value = run_attacks_train(args)
-        f.write(f'The value for is {run_value}\n')
-        f.flush()
+
 
 
 if __name__ == '__main__':

@@ -97,7 +97,7 @@ def parse_args():
                         help='Trajectory window stride for optimizing attacks (default: whole window)')
     parser.add_argument('--load_attack', default=None,
                         help='path to load previously computed perturbation (default: "")')
-    parser.add_argument('--momentum',type = float,default = 0)
+    parser.add_argument('--momentum',type = float,default = 0.9)
     args = parser.parse_args()
     print("args")
     print(args)
@@ -243,7 +243,7 @@ def compute_attack_args(args):
                                           sample_window_size=args.window_size,
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
-                                          init_pert_transform=load_pert_transform)
+                                          init_pert_transform=load_pert_transform,lr = args.alpha)
 
     return args
 

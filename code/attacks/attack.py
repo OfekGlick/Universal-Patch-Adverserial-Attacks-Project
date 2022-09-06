@@ -10,7 +10,7 @@ from loss import test_model
 class Attack:
     def __init__(self, model, criterion, test_criterion, norm, data_shape,
                  sample_window_size=None, sample_window_stride=None,
-                 pert_padding=(0, 0)):
+                 pert_padding=(0, 0),lr = 0.05):
         self.model = model
         self.criterion = criterion
         self.test_criterion = test_criterion
@@ -32,7 +32,7 @@ class Attack:
 
         self.pert_padding = pert_padding
         self.grad_momentum = None
-        self.optimizer = AdamOptim(eta =0.05)
+        self.optimizer = AdamOptim(eta  = lr)
         self.t = 0
 
     def random_initialization(self, pert, eps):
@@ -451,7 +451,7 @@ class Attack:
 
         return pert
     def gradient_ascent_step_with_adam_optimizer(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                             multiplier, a_abs, eps, device=None, momentum=0.5):
+                              eps, device=None):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
         grad_tot = torch.zeros_like(pert, requires_grad=False)
@@ -568,6 +568,8 @@ class AdamOptim():
         self.beta2 = beta2
         self.epsilon = epsilon
         self.eta = eta
+        print("This is the lr now")
+        print(self.eta)
     def update(self, t, w, dw):
         ## dw, db are from current minibatch
         ## momentum beta 1
@@ -585,5 +587,5 @@ class AdamOptim():
         v_dw_corr = self.v_dw/(1-self.beta2**t)
 
         ## update weights and biases
-        w = w - self.eta*(m_dw_corr/(np.sqrt(v_dw_corr)+self.epsilon))
+        w = w + self.eta*(m_dw_corr/(torch.sqrt(v_dw_corr)+self.epsilon))
         return w

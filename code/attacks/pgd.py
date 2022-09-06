@@ -22,10 +22,10 @@ class PGD(Attack):
             sample_window_stride=None,
             pert_padding=(0, 0),
             init_pert_path=None,
-            init_pert_transform=None):
+            init_pert_transform=None, lr=0.05):
         super(PGD, self).__init__(model, criterion, test_criterion, norm, data_shape,
                                   sample_window_size, sample_window_stride,
-                                  pert_padding)
+                                  pert_padding, lr)
 
         self.alpha = alpha
 
@@ -139,7 +139,7 @@ class PGD(Attack):
         return grad.to(device)
 
     def perturb(self, data_loader, y_list, eps,
-                targeted=False, device=None, eval_data_loader=None, eval_y_list=None,momentum = 0.5):
+                targeted=False, device=None, eval_data_loader=None, eval_y_list=None, momentum=0.5):
 
         a_abs = np.abs(eps / self.n_iter) if self.alpha is None else np.abs(self.alpha)
         multiplier = -1 if targeted else 1
@@ -176,8 +176,11 @@ class PGD(Attack):
                 print(" attack optimization epoch: " + str(k))
                 iter_start_time = time.time()
 
-                pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
-                                                 multiplier, a_abs, eps, device=device,momentum = momentum)
+                # pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
+                #                                  multiplier, a_abs, eps, device=device,momentum = momentum)
+                pert = self.gradient_ascent_step_with_simple_momentum(pert, data_shape, data_loader, y_list,
+                                                                      clean_flow_list, multiplier, a_abs, eps, device,
+                                                                      momentum)
 
                 step_runtime = time.time() - iter_start_time
                 print(" optimization epoch finished, epoch runtime: " + str(step_runtime))
@@ -218,4 +221,4 @@ class PGD(Attack):
 
             opt_runtime = time.time() - opt_start_time
             print("optimization restart finished, optimization runtime: " + str(opt_runtime))
-        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss,best_loss_sum
+        return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss, best_loss_sum
