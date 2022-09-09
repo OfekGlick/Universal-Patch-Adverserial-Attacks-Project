@@ -22,10 +22,10 @@ class PGD(Attack):
             sample_window_stride=None,
             pert_padding=(0, 0),
             init_pert_path=None,
-            init_pert_transform=None, lr=0.05):
+            init_pert_transform=None):
         super(PGD, self).__init__(model, criterion, test_criterion, norm, data_shape,
                                   sample_window_size, sample_window_stride,
-                                  pert_padding, lr)
+                                  pert_padding, alpha)
 
         self.alpha = alpha
 
@@ -176,12 +176,13 @@ class PGD(Attack):
                 print(" attack optimization epoch: " + str(k))
                 iter_start_time = time.time()
 
-                # pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
-                #                                  multiplier, a_abs, eps, device=device,momentum = momentum)
-                pert = self.gradient_ascent_step_with_simple_momentum(pert, data_shape, data_loader, y_list,
-                                                                      clean_flow_list, multiplier, a_abs, eps, device,
-                                                                      momentum)
-
+                pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
+                                                 multiplier, a_abs, eps, device=device)
+                # pert = self.gradient_ascent_step_with_simple_momentum(pert, data_shape, data_loader, y_list,
+                #                                                       clean_flow_list, multiplier, a_abs, eps, device,
+                #                                                       momentum)
+                # pert = self.gradient_ascent_step_with_adam_optimizer(pert, data_shape, data_loader, y_list, clean_flow_list,
+                #               eps, device= device)
                 step_runtime = time.time() - iter_start_time
                 print(" optimization epoch finished, epoch runtime: " + str(step_runtime))
 

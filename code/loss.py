@@ -209,6 +209,23 @@ class VOCriterion:
             t_errors_tot[traj_s_idx:] += t_error
             target_t_errors_tot[traj_s_idx:] += target_t_error
         return t_errors_tot, target_t_errors_tot
+    def calc_weighted_partial_poses_t(self,motions,motions_gt,target_pose):
+        rel_poses = self.rtvec_to_pose(motions)
+        rel_poses_gt = self.rtvec_to_pose(motions_gt)
+        t_errors_tot = torch.zeros(rel_poses.shape[0] + 1,
+                                   device=rel_poses.device, dtype=rel_poses.dtype)
+        target_t_errors_tot = torch.zeros(rel_poses.shape[0] + 1,
+                                   device=rel_poses.device, dtype=rel_poses.dtype)
+
+        for traj_s_idx in range(rel_poses.shape[0]):
+            partial_traj = rel_poses[traj_s_idx:]
+            partial_traj_gt = rel_poses_gt[traj_s_idx:]
+            cumul_poses = self.cumulative_poses(partial_traj)
+            cumul_poses_gt = self.cumulative_poses(partial_traj_gt)
+            t_error, target_t_error = self.weighted_translation_error(cumul_poses, cumul_poses_gt, target_pose)
+            t_errors_tot[traj_s_idx:] += t_error
+            target_t_errors_tot[traj_s_idx:] += target_t_error
+        return t_errors_tot, target_t_errors_tot
 
     def calc_mean_partial_poses_t(self, motions, motions_gt, target_pose):
         rel_poses = self.rtvec_to_pose(motions)
@@ -265,7 +282,15 @@ class VOCriterion:
             target_gt_t_hat = torch.nn.functional.normalize(target_gt_t, p=2, dim=1).unsqueeze(2)
             t_target_error = (cumul_delta_t.unsqueeze(1).bmm(target_gt_t_hat)).view(-1)
         return t_error, t_target_error
-
+    def weighted_translation_error(self,cumul_poses, cumul_poses_gt, target):
+        cumul_delta_t = cumul_poses[:, 0:3, 3] - cumul_poses_gt[:, 0:3, 3]
+        t_error = torch.norm(cumul_delta_t, p=2, dim=1)
+        t_target_error = 0
+        if target is not None:
+            target_gt_t = (cumul_poses_gt[:, 0:3, 3] - target)
+            target_gt_t_hat = torch.nn.functional.normalize(target_gt_t, p=2, dim=1).unsqueeze(2)
+            t_target_error = (cumul_delta_t.unsqueeze(1).bmm(target_gt_t_hat)).view(-1)
+        return t_error, t_target_error
     def rtvec_to_pose(self, rtvec):
         return rtvec_to_pose(rtvec)
 

@@ -626,6 +626,61 @@ def report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, tr
            frames_ratio_crit_mean, frames_ratio_crit_std, \
            frames_delta_ratio_crit_mean, frames_delta_ratio_crit_std
 
+def report_relevant_criteria_and_additional_stats(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                         traj_clean_crit_list, traj_adv_crit_list, save_csv, output_dir, crit_str,
+                         args):
+    csv_path = os.path.join(output_dir, 'results_' + crit_str + '.csv')
+    traj_delta_crit_list = []
+    for traj_idx, traj_name in enumerate(traj_name_list):
+        traj_clean_crit = traj_clean_crit_list[traj_idx]
+        traj_adv_crit = traj_adv_crit_list[traj_idx]
+        traj_delta_crit = []
+
+
+        for frame_idx, frame_clean_crit in enumerate(traj_clean_crit):
+            frame_adv_crit = traj_adv_crit[frame_idx]
+            frame_delta_crit = frame_adv_crit - frame_clean_crit
+            traj_delta_crit.append(frame_delta_crit)
+        traj_delta_crit_list.append(traj_delta_crit)
+
+
+    if save_csv:
+        fieldsnames = ['dataset_idx', 'dataset_name', 'traj_idx', 'traj_name', 'frame_idx',
+                       'clean_' + crit_str, 'adv_' + crit_str, 'adv_delta_' + crit_str,
+                       'adv_ratio_' + crit_str, 'adv_delta_ratio_' + crit_str, ]
+
+        with open(csv_path, 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldsnames)
+            writer.writeheader()
+            for traj_idx, traj_name in enumerate(traj_name_list):
+                for frame_idx, frame_clean_crit in enumerate(traj_clean_crit_list[traj_idx]):
+                    data = {'dataset_idx': dataset_idx_list[traj_idx],
+                            'dataset_name': dataset_name_list[traj_idx],
+                            'traj_idx': traj_indices[traj_idx],
+                            'traj_name': traj_name,
+                            'frame_idx': frame_idx,
+                            'clean_' + crit_str: frame_clean_crit,
+                            'adv_' + crit_str: traj_adv_crit_list[traj_idx][frame_idx],
+                            'adv_delta_' + crit_str: traj_delta_crit_list[traj_idx][frame_idx]}
+                    writer.writerow(data)
+    txt_path = os.path.join(output_dir, 'args.txt')
+    lvo = 0
+    with open(txt_path, 'a+') as f:
+        for k in args.__dict__:
+            if args.__dict__[k] is not None:
+                f.write(f'{k} = {args.__dict__[k]}\n')
+                f.flush()
+        for traj_idx, traj_name in enumerate(traj_name_list):
+            traj_lvo = 0
+            for frame_idx, frame_clean_crit in enumerate(traj_clean_crit_list[traj_idx]):
+                traj_lvo += traj_delta_crit_list[traj_idx][frame_idx]
+            f.write(f'For traj {traj_idx} the lvo = {traj_lvo}\n')
+            f.flush()
+            lvo += traj_lvo
+        f.write(f'Total lvo = {lvo}\n')
+    return lvo
+
+
 
 def run_attacks_train(args):
     print("Training and testing an adversarial perturbation on the whole dataset")
@@ -686,7 +741,10 @@ def run_attacks_train(args):
     report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                          traj_clean_rms_list, traj_adv_rms_list,
                          args.save_csv, args.output_dir, crit_str="rms")
-    return best_lost_sum
+    lvo_sum = report_relevant_criteria_and_additional_stats(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                         traj_clean_rms_list, traj_adv_rms_list,
+                         args.save_csv, args.output_dir, crit_str="nothing",args = args)
+    return lvo_sum
 
 
 def test_clean(args):
@@ -696,13 +754,11 @@ def test_clean(args):
 
 
 def main():
-    with open('momentum_0.9.txt', 'w') as f:
-        args = get_args()
-        run_value = run_attacks_train(args)
-        f.write(f'The value with simple momentum is {run_value}\n')
-        f.flush()
-    if args.attack is None:
-        return test_clean(args)
+    for lr in [0.05]:
+        args = get_args(lr)
+        if args.attack is None:
+            return test_clean(args)
+        run_attacks_train(args)
 
 
 

@@ -15,7 +15,7 @@ from loss import VOCriterion
 import numpy as np
 
 
-def parse_args():
+def parse_args(alpha):
     parser = argparse.ArgumentParser()
     # parser = argparse.ArgumentParser(description='HRL')
 
@@ -70,7 +70,7 @@ def parse_args():
     parser.add_argument('--attack', default='none', type=str, metavar='ATT', help='attack type')
     parser.add_argument('--attack_norm', default='Linf', type=str, metavar='ATTL', help='norm used for the attack')
     parser.add_argument('--attack_k', default=100, type=int, metavar='ATTK', help='number of iterations for the attack')
-    parser.add_argument('--alpha', type=float, default=0.05)
+    parser.add_argument('--alpha', type=float, default=alpha)
     parser.add_argument('--eps', type=float, default=1)
     # parser.add_argument('--attack_targeted', action='store_true', default=False, help='use targeted attacks')
     parser.add_argument('--attack_eval_mean_partial_rms', action='store_true', default=False,
@@ -243,7 +243,7 @@ def compute_attack_args(args):
                                           sample_window_size=args.window_size,
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
-                                          init_pert_transform=load_pert_transform,lr = args.alpha)
+                                          init_pert_transform=load_pert_transform)
 
     return args
 
@@ -365,8 +365,8 @@ class AdamOptim():
         w = w - self.eta*(m_dw_corr/(np.sqrt(v_dw_corr)+self.epsilon))
         return w
 
-def get_args():
-    args = parse_args()
+def get_args(alpha):
+    args = parse_args(alpha)
     args = compute_run_args(args)
     args = compute_data_args(args)
     args = compute_VO_args(args)
