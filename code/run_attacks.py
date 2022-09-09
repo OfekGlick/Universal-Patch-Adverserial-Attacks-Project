@@ -647,28 +647,16 @@ def run_attacks_train(args):
     motions_target_list = motions_gt_list
     traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
     traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list = tuple(traj_clean_criterions_list)
-
-    for test_fold_idx in [0, 1, 2, 3, 4]:
+    args.old_path = args.output_dir
+    for test_fold_idx in [0, 1, 2]:
+        args.output_dir = args.old_path +f'/test_{test_fold_idx}'
+        try:
+            mkdir(args.output_dir)
+        except FileExistsError:
+            pass
         test_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == test_fold_idx]
-        test_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
-                                          preprocessed_data=True,
-                                          transform=args.transform,
-                                          data_size=(args.image_height, args.image_width),
-                                          focalx=args.focalx,
-                                          focaly=args.focaly,
-                                          centerx=args.centerx,
-                                          centery=args.centery,
-                                          max_traj_len=args.max_traj_len,
-                                          max_dataset_traj_num=args.max_traj_num,
-                                          max_traj_datasets=args.max_traj_datasets,
-                                          folder_indices_list=[test_fold_idx])
-        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size,
-                                     shuffle=False, num_workers=args.worker_num)
 
-        while True:
-            eval_fold_idx = random.choice([0, 1, 2, 3, 4])
-            if eval_fold_idx != test_fold_idx:
-                break
+        eval_fold_idx = test_fold_idx + 1
         eval_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == eval_fold_idx]
         eval_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
                                           preprocessed_data=True,
@@ -761,7 +749,7 @@ def run_attacks_train(args):
             save_image(best_pert[0], args.adv_best_pert_dir + '/' + 'adv_best_pert.png')
 
         traj_adv_criterions_list = \
-            test_adv_trajectories(test_dataloader, args.model, motions_target_test_list, attack, best_pert,
+            test_adv_trajectories(args.testDataloader, args.model, motions_gt_list, attack, best_pert,
                                   args.criterions, args.window_size,
                                   args.save_imgs, args.save_flow, args.save_pose,
                                   args.adv_img_dir, args.adv_pert_dir, args.flowdir, args.pose_dir,
