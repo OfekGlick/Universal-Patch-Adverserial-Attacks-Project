@@ -21,6 +21,10 @@ import gc
 import csv
 
 
+def masked_list(lst, indices):
+    return [lst[idx] for idx in indices]
+
+
 def save_flow_imgs(flow, flowdir, visflow, dataset_name, traj_name, save_dir_suffix='_clean'):
     flow_save_dir = flowdir + '/' + dataset_name
     if not isdir(flow_save_dir):
@@ -640,52 +644,147 @@ def run_attacks_train(args):
 
     print("traj_name_list")
     print(traj_name_list)
-
     motions_target_list = motions_gt_list
     traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
     traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list = tuple(traj_clean_criterions_list)
 
-    best_pert, clean_loss_list, all_loss_list, all_best_loss_list, best_lost_sum = \
-        attack.perturb(args.testDataloader, motions_target_list, eps=args.eps, device=args.device,
-                       momentum=args.momentum)
+    for test_fold_idx in [0, 1, 2, 3, 4]:
+        test_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == test_fold_idx]
+        test_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
+                                          preprocessed_data=True,
+                                          transform=args.transform,
+                                          data_size=(args.image_height, args.image_width),
+                                          focalx=args.focalx,
+                                          focaly=args.focaly,
+                                          centerx=args.centerx,
+                                          centery=args.centery,
+                                          max_traj_len=args.max_traj_len,
+                                          max_dataset_traj_num=args.max_traj_num,
+                                          max_traj_datasets=args.max_traj_datasets,
+                                          folder_indices_list=[test_fold_idx])
+        test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size,
+                                     shuffle=False, num_workers=args.worker_num)
 
-    print("clean_loss_list")
-    print(clean_loss_list)
-    # print("all_loss_list")
-    # print(all_loss_list)
-    # print("all_best_loss_list")
-    # print(all_best_loss_list)
-    best_loss_list = all_best_loss_list[- 1]
-    print("best_loss_list")
-    print(best_loss_list)
+        while True:
+            eval_fold_idx = random.choice([0, 1, 2, 3, 4])
+            if eval_fold_idx != test_fold_idx:
+                break
+        eval_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == eval_fold_idx]
+        eval_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
+                                          preprocessed_data=True,
+                                          transform=args.transform,
+                                          data_size=(args.image_height, args.image_width),
+                                          focalx=args.focalx,
+                                          focaly=args.focaly,
+                                          centerx=args.centerx,
+                                          centery=args.centery,
+                                          max_traj_len=args.max_traj_len,
+                                          max_dataset_traj_num=args.max_traj_num,
+                                          max_traj_datasets=args.max_traj_datasets,
+                                          folder_indices_list=[eval_fold_idx])
+        eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size,
+                                     shuffle=False, num_workers=args.worker_num)
 
-    if args.save_best_pert:
-        save_image(best_pert[0], args.adv_best_pert_dir + '/' + 'adv_best_pert.png')
+        train_indices = [traj_idx for traj_idx in traj_indices
+                         if (traj_idx not in test_indices and traj_idx not in eval_indices)]
+        train_folders_indices = [fold_idx for fold_idx in [0, 1, 2, 3, 4]
+                                 if (fold_idx != test_fold_idx and fold_idx != eval_fold_idx)]
+        train_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
+                                           preprocessed_data=True,
+                                           transform=args.transform,
+                                           data_size=(args.image_height, args.image_width),
+                                           focalx=args.focalx,
+                                           focaly=args.focaly,
+                                           centerx=args.centerx,
+                                           centery=args.centery,
+                                           max_traj_len=args.max_traj_len,
+                                           max_dataset_traj_num=args.max_traj_num,
+                                           max_traj_datasets=args.max_traj_datasets,
+                                           folder_indices_list=train_folders_indices)
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size,
+                                      shuffle=False, num_workers=args.worker_num)
 
-    traj_adv_criterions_list = \
-        test_adv_trajectories(args.testDataloader, args.model, motions_target_list, attack, best_pert,
-                              args.criterions, args.window_size,
-                              args.save_imgs, args.save_flow, args.save_pose,
-                              args.adv_img_dir, args.adv_pert_dir, args.flowdir, args.pose_dir,
-                              device=args.device)
-    traj_adv_rms_list, traj_adv_mean_partial_rms_list, \
-    traj_adv_target_rms_list, traj_adv_target_mean_partial_rms_list = tuple(traj_adv_criterions_list)
+        print("test_fold_idx")
+        print(test_fold_idx)
+        print("eval_fold_idx")
+        print(eval_fold_idx)
+        print("train_folders_indices")
+        print(train_folders_indices)
+        #################################
+        train_dataset_indices = masked_list(dataset_idx_list, train_indices)
+        train_dataset_names = masked_list(dataset_name_list, train_indices)
+        train_traj_names = masked_list(traj_name_list, train_indices)
+        motions_target_train_list = masked_list(motions_target_list, train_indices)
+        traj_clean_train_rms_list = masked_list(traj_clean_rms_list, train_indices)
+        traj_clean_train_mean_partial_rms_list = masked_list(traj_clean_mean_partial_rms_list, train_indices)
+        traj_clean_train_target_rms_list = masked_list(traj_clean_target_rms_list, train_indices)
+        traj_clean_train_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
+                                                                    train_indices)
 
-    report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
-                         traj_clean_target_mean_partial_rms_list, traj_adv_target_mean_partial_rms_list,
-                         args.save_csv, args.output_dir, crit_str="target_mean_partial_rms")
+        eval_dataset_indices = masked_list(dataset_idx_list, eval_indices)
+        eval_dataset_names = masked_list(dataset_name_list, eval_indices)
+        eval_traj_names = masked_list(traj_name_list, eval_indices)
+        motions_target_eval_list = masked_list(motions_target_list, eval_indices)
+        traj_clean_eval_rms_list = masked_list(traj_clean_rms_list, eval_indices)
+        traj_clean_eval_mean_partial_rms_list = masked_list(traj_clean_mean_partial_rms_list, eval_indices)
+        traj_clean_eval_target_rms_list = masked_list(traj_clean_target_rms_list, eval_indices)
+        traj_clean_eval_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
+                                                                   eval_indices)
 
-    report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
-                         traj_clean_target_rms_list, traj_adv_target_rms_list,
-                         args.save_csv, args.output_dir, crit_str="target_rms")
+        test_dataset_indices = masked_list(dataset_idx_list, test_indices)
+        test_dataset_names = masked_list(dataset_name_list, test_indices)
+        test_traj_names = masked_list(traj_name_list, test_indices)
+        motions_target_test_list = masked_list(motions_target_list, test_indices)
+        traj_clean_test_rms_list = masked_list(traj_clean_rms_list, test_indices)
+        traj_clean_test_mean_partial_rms_list = masked_list(traj_clean_mean_partial_rms_list, test_indices)
+        traj_clean_test_target_rms_list = masked_list(traj_clean_target_rms_list, test_indices)
+        traj_clean_test_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
+                                                                   test_indices)
 
-    report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
-                         traj_clean_mean_partial_rms_list, traj_adv_mean_partial_rms_list,
-                         args.save_csv, args.output_dir, crit_str="mean_partial_rms")
+        ##################################################
+        best_pert, clean_loss_list, all_loss_list, all_best_loss_list, best_lost_sum = \
+            attack.perturb(train_dataloader, motions_target_train_list, eps=args.eps, device=args.device,
+                           momentum=args.momentum, eval_data_loader=eval_dataloader,
+                           eval_y_list=motions_target_eval_list)
 
-    report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
-                         traj_clean_rms_list, traj_adv_rms_list,
-                         args.save_csv, args.output_dir, crit_str="rms")
+        print("clean_loss_list")
+        print(clean_loss_list)
+        # print("all_loss_list")
+        # print(all_loss_list)
+        # print("all_best_loss_list")
+        # print(all_best_loss_list)
+        best_loss_list = all_best_loss_list[- 1]
+        print(f"Test folder {test_fold_idx} best_loss_list")
+        print(best_loss_list)
+
+        if args.save_best_pert:
+            save_image(best_pert[0], args.adv_best_pert_dir + '/' + 'adv_best_pert.png')
+
+        traj_adv_criterions_list = \
+            test_adv_trajectories(test_dataloader, args.model, motions_target_test_list, attack, best_pert,
+                                  args.criterions, args.window_size,
+                                  args.save_imgs, args.save_flow, args.save_pose,
+                                  args.adv_img_dir, args.adv_pert_dir, args.flowdir, args.pose_dir,
+                                  device=args.device)
+        traj_adv_rms_list, traj_adv_mean_partial_rms_list, \
+        traj_adv_target_rms_list, traj_adv_target_mean_partial_rms_list = tuple(traj_adv_criterions_list)
+
+        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                             traj_clean_target_mean_partial_rms_list, traj_adv_target_mean_partial_rms_list,
+                             args.save_csv, args.output_dir, crit_str="target_mean_partial_rms")
+
+        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                             traj_clean_target_rms_list, traj_adv_target_rms_list,
+                             args.save_csv, args.output_dir, crit_str="target_rms")
+
+        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                             traj_clean_mean_partial_rms_list, traj_adv_mean_partial_rms_list,
+                             args.save_csv, args.output_dir, crit_str="mean_partial_rms")
+
+        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                             traj_clean_rms_list, traj_adv_rms_list,
+                             args.save_csv, args.output_dir, crit_str="rms")
+    ofek = 5
     return best_lost_sum
 
 
@@ -703,7 +802,6 @@ def main():
         f.flush()
     if args.attack is None:
         return test_clean(args)
-
 
 
 if __name__ == '__main__':
