@@ -186,10 +186,12 @@ def compute_VO_args(args):
     args.target_rms_crit = VOCriterion(target_t_crit="patch", t_factor=0)
     print("initializing targeted mean partial RMS test criterion")
     args.target_mean_partial_rms_crit = VOCriterion(t_crit="mean_partial_rms", target_t_crit="patch", t_factor=0)
+    print("initializing weighted RMS test criterion")
+    args.weighted_rms_crit = VOCriterion(t_crit="weighted_rms")
     args.criterions = [args.rms_crit, args.mean_partial_rms_crit,
-                       args.target_rms_crit, args.target_mean_partial_rms_crit]
+                       args.target_rms_crit, args.target_mean_partial_rms_crit,args.weighted_rms_crit]
     args.criterions_names = ["rms_crit", "mean_partial_rms_crit",
-                             "target_rms_crit", "target_mean_partial_rms_crit"]
+                             "target_rms_crit", "target_mean_partial_rms_crit","weighted_rms"]
 
     if args.window_size is not None:
         if args.traj_len <= args.window_size:
