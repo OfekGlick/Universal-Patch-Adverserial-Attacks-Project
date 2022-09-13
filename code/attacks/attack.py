@@ -397,10 +397,13 @@ class Attack:
             return loss_tot, loss_list
 
     def gradient_ascent_step(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                             multiplier, a_abs, eps, device=None):
+                             multiplier, a_abs, eps,sign, device=None):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
-        grad_tot = torch.zeros_like(pert, requires_grad=False)
+        if sign:
+            grad_tot = torch.zeros_like(pert, requires_grad=False)
+        else:
+            grad_tot = []
         for data_idx, data in enumerate(data_loader):
             dataset_idx, dataset_name, traj_name, traj_len, \
             img1_I0, img2_I0, intrinsic_I0, \
@@ -416,7 +419,10 @@ class Attack:
             grad = grad.sum(dim=0, keepdims=True).detach()
 
             with torch.no_grad():
-                grad_tot += grad
+                if sign:
+                    grad_tot += grad
+                else:
+                    grad_tot.append(grad)
 
             del grad
             del img1_I0
@@ -436,17 +442,22 @@ class Attack:
             torch.cuda.empty_cache()
 
         with torch.no_grad():
-            grad = self.normalize_grad(grad_tot)
+            if sign:
+                grad = self.normalize_grad(grad_tot)
+            else:
+                grad = torch.stack(grad_tot).mean(0)
             pert += multiplier * a_abs * grad
             pert = self.project(pert, eps)
 
         return pert
     def gradient_ascent_step_with_adam_optimizer(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                              eps, device=None):
+                              eps,sign, device=None):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
-        #grad_tot = torch.zeros_like(pert, requires_grad=False)
-        grad_tot = []
+        if sign:
+            grad_tot = torch.zeros_like(pert, requires_grad=False)
+        else:
+            grad_tot = []
         for data_idx, data in enumerate(data_loader):
             dataset_idx, dataset_name, traj_name, traj_len, \
             img1_I0, img2_I0, intrinsic_I0, \
@@ -462,8 +473,10 @@ class Attack:
             grad = grad.sum(dim=0, keepdims=True).detach()
 
             with torch.no_grad():
-                grad_tot.append(grad)
-                #grad_tot += grad
+                if sign:
+                    grad_tot += grad
+                else:
+                    grad_tot.append(grad)
 
             del grad
             del img1_I0
@@ -484,24 +497,22 @@ class Attack:
 
         with torch.no_grad():
             self.t += 1
-            #grad = self.normalize_grad(grad_tot)
-            grad = torch.stack(grad_tot).mean(dim=0)
-            # if self.grad_momentum is None:
-            #     self.grad_momentum = (1 - momentum) * grad
-            # else:
-            #     self.grad_momentum = momentum * self.grad_momentum + (1 - momentum) * grad
-            # pert += multiplier * a_abs * self.grad_momentum
+            if sign:
+                grad = self.normalize_grad(grad_tot)
+            else:
+                grad = torch.stack(grad_tot).mean(dim=0)
             pert = self.optimizer.update(self.t,pert,grad)
-            #pert += multiplier * a_abs * grad
             pert = self.project(pert, eps)
 
         return pert
     def gradient_ascent_step_with_simple_momentum(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                             multiplier, a_abs, eps, device=None, momentum=0.5):
+                             multiplier, a_abs, eps,sign, device=None, momentum=0.5):
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
-        grad_tot = torch.zeros_like(pert, requires_grad=False)
-        #grad_tot = []
+        if sign:
+            grad_tot = torch.zeros_like(pert, requires_grad=False)
+        else:
+            grad_tot = []
         for data_idx, data in enumerate(data_loader):
             dataset_idx, dataset_name, traj_name, traj_len, \
             img1_I0, img2_I0, intrinsic_I0, \
@@ -517,8 +528,10 @@ class Attack:
             grad = grad.sum(dim=0, keepdims=True).detach()
 
             with torch.no_grad():
-                #grad_tot.append(grad)
-                grad_tot += grad
+                if sign:
+                    grad_tot += grad
+                else:
+                    grad_tot.append(grad)
 
             del grad
             del img1_I0
@@ -538,7 +551,10 @@ class Attack:
             torch.cuda.empty_cache()
 
         with torch.no_grad():
-            grad = self.normalize_grad(grad_tot)
+            if sign:
+                grad = self.normalize_grad(grad_tot)
+            else:
+                grad = torch.stack(grad_tot).mean(dim=0)
             if self.grad_momentum is None:
                 self.grad_momentum = (1 - momentum) * grad
             else:

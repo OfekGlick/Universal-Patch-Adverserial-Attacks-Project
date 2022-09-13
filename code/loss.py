@@ -165,7 +165,7 @@ class VOCriterion:
         elif t_crit == 'mean_partial_rms':
             self.calc_t_crit = self.calc_mean_partial_poses_t
         elif t_crit == "weighted_rms":
-            self.calc_t_crit = self.calc_weighted_cumul_poses_t()
+            self.calc_t_crit = self.calc_weighted_cumul_poses_t
         else:
             self.calc_t_crit = self.calc_cumul_poses_t
 
@@ -251,7 +251,7 @@ class VOCriterion:
         cumul_poses_gt = self.cumulative_poses(rel_poses_gt)
         t_error, target_t_error = self.translation_error(cumul_poses, cumul_poses_gt, target_pose)
         weights = torch.tensor([1/math.log2(i+2) for i in range(len(t_error))])
-        weights.to(t_error.get_device())
+        weights = weights.to(t_error.get_device())
         t_error = weights * t_error
         return t_error, target_t_error
 

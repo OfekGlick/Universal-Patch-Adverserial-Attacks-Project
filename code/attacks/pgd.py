@@ -139,7 +139,8 @@ class PGD(Attack):
         return grad.to(device)
 
     def perturb(self, data_loader, y_list, eps,
-                targeted=False, device=None, eval_data_loader=None, eval_y_list=None, momentum=0.5):
+                targeted=False, device=None, eval_data_loader=None, eval_y_list=None, momentum=0.9,
+                gradient_ascent_method='gradient_ascent', sign=False):
 
         a_abs = np.abs(eps / self.n_iter) if self.alpha is None else np.abs(self.alpha)
         multiplier = -1 if targeted else 1
@@ -176,13 +177,20 @@ class PGD(Attack):
                 print(" attack optimization epoch: " + str(k))
                 iter_start_time = time.time()
 
-                pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
-                                                 multiplier, a_abs, eps, device=device)
-                # pert = self.gradient_ascent_step_with_simple_momentum(pert, data_shape, data_loader, y_list,
-                #                                                       clean_flow_list, multiplier, a_abs, eps, device,
-                #                                                       momentum)
-                # pert = self.gradient_ascent_step_with_adam_optimizer(pert, data_shape, data_loader, y_list, clean_flow_list,
-                #               eps, device= device)
+                if gradient_ascent_method == 'gradient_ascent':
+                    pert = self.gradient_ascent_step(pert, data_shape, data_loader, y_list, clean_flow_list,
+                                                     multiplier, a_abs, eps, sign, device=device)
+                elif gradient_ascent_method == 'momentum':
+                    pert = self.gradient_ascent_step_with_simple_momentum(pert, data_shape, data_loader, y_list,
+                                                                          clean_flow_list, multiplier, a_abs, eps,
+                                                                          sign=sign, device=device,
+                                                                          momentum=momentum)
+                elif gradient_ascent_method == 'adam':
+                    pert = self.gradient_ascent_step_with_adam_optimizer(pert, data_shape, data_loader, y_list,
+                                                                         clean_flow_list,
+                                                                         eps, sign=sign, device=device)
+                else:
+                    raise NotImplementedError(f"No gradient ascent method by the name {gradient_ascent_method}")
                 step_runtime = time.time() - iter_start_time
                 print(" optimization epoch finished, epoch runtime: " + str(step_runtime))
 

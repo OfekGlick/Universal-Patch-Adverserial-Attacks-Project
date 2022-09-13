@@ -646,10 +646,11 @@ def run_attacks_train(args):
     print(traj_name_list)
     motions_target_list = motions_gt_list
     traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
-    traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list = tuple(traj_clean_criterions_list)
+    traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list, \
+    traj_clean_weighted_rms_list = tuple(traj_clean_criterions_list)
     args.old_path = args.output_dir
     for test_fold_idx in [0, 1, 2]:
-        args.output_dir = args.old_path +f'/test_{test_fold_idx}'
+        args.output_dir = args.old_path + f'/test_{test_fold_idx}'
         try:
             mkdir(args.output_dir)
         except FileExistsError:
@@ -733,7 +734,8 @@ def run_attacks_train(args):
         best_pert, clean_loss_list, all_loss_list, all_best_loss_list, best_lost_sum = \
             attack.perturb(train_dataloader, motions_target_train_list, eps=args.eps, device=args.device,
                            momentum=args.momentum, eval_data_loader=eval_dataloader,
-                           eval_y_list=motions_target_eval_list)
+                           eval_y_list=motions_target_eval_list, gradient_ascent_method=args.gradient_ascent_method,
+                           sign=args.sign)
 
         print("clean_loss_list")
         print(clean_loss_list)
@@ -755,7 +757,8 @@ def run_attacks_train(args):
                                   args.adv_img_dir, args.adv_pert_dir, args.flowdir, args.pose_dir,
                                   device=args.device)
         traj_adv_rms_list, traj_adv_mean_partial_rms_list, \
-        traj_adv_target_rms_list, traj_adv_target_mean_partial_rms_list = tuple(traj_adv_criterions_list)
+        traj_adv_target_rms_list, traj_adv_target_mean_partial_rms_list, \
+        traj_adv__weighted_rms_list = tuple(traj_adv_criterions_list)
 
         report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                              traj_clean_target_mean_partial_rms_list, traj_adv_target_mean_partial_rms_list,
@@ -772,6 +775,9 @@ def run_attacks_train(args):
         report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                              traj_clean_rms_list, traj_adv_rms_list,
                              args.save_csv, args.output_dir, crit_str="rms")
+        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
+                             traj_clean_weighted_rms_list, traj_adv__weighted_rms_list,
+                             args.save_csv, args.output_dir, crit_str="target_weighted_rms")
     ofek = 5
     return best_lost_sum
 
