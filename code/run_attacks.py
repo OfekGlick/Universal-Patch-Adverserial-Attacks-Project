@@ -649,6 +649,11 @@ def run_attacks_train(args):
     traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list, \
     traj_clean_weighted_rms_list = tuple(traj_clean_criterions_list)
     args.old_path = args.output_dir
+    if args.save_results:
+        with open(args.output_dir+'/args.txt','w') as f:
+            for arg in vars(args):
+                f.write(f'{arg} = {getattr(args, arg)}')
+            f.close()
     for test_fold_idx in [0, 1, 2]:
         args.output_dir = args.old_path + f'/test_{test_fold_idx}'
         try:
@@ -778,7 +783,6 @@ def run_attacks_train(args):
         report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                              traj_clean_weighted_rms_list, traj_adv__weighted_rms_list,
                              args.save_csv, args.output_dir, crit_str="target_weighted_rms")
-    ofek = 5
     return best_lost_sum
 
 
@@ -789,13 +793,10 @@ def test_clean(args):
 
 
 def main():
-    with open('momentum_0.9.txt', 'w') as f:
-        args = get_args()
-        run_value = run_attacks_train(args)
-        f.write(f'The value with simple momentum is {run_value}\n')
-        f.flush()
+    args = get_args()
     if args.attack is None:
         return test_clean(args)
+    return run_attacks_train(args)
 
 
 if __name__ == '__main__':

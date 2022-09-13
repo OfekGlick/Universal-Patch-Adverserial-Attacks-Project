@@ -250,7 +250,9 @@ class VOCriterion:
         cumul_poses = self.cumulative_poses(rel_poses)
         cumul_poses_gt = self.cumulative_poses(rel_poses_gt)
         t_error, target_t_error = self.translation_error(cumul_poses, cumul_poses_gt, target_pose)
-        weights = torch.tensor([1/math.log2(i+2) for i in range(len(t_error))])
+        weights = [0.0]+[1/math.log2(i+1) for i in range(1,len(t_error))]
+        weights = torch.tensor(weights)
+        #weights = torch.tensor([1/math.log2(i+2) for i in range(len(t_error))])
         weights = weights.to(t_error.get_device())
         t_error = weights * t_error
         return t_error, target_t_error

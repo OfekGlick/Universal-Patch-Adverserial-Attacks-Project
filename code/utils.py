@@ -98,7 +98,7 @@ def parse_args():
     parser.add_argument('--load_attack', default=None,
                         help='path to load previously computed perturbation (default: "")')
     parser.add_argument('--momentum',type = float,default = 0.9)
-    parser.add_argument('--sign',type = bool,default=False,help="Flag to use sign gradient or regular gradient")
+    parser.add_argument('--sign',action='store_true',default=False,help="Flag to use sign gradient or regular gradient")
     parser.add_argument('--gradient_ascent_method',type=str,default='gradient_ascent',help='Methods for gradient ascent '
                                                                     'possibilities are:[gradient_ascent,momentum,adam]')
     args = parser.parse_args()
@@ -305,10 +305,14 @@ def compute_output_dir(args):
             args.output_dir += '/eval_' + args.attack_eval_str
             if not isdir(args.output_dir):
                 mkdir(args.output_dir)
-
+            if args.sign:
+                sign = "_signed_"
+            else:
+                sign = "_unsigned_"
             args.output_dir += "/eps_" + str(args.eps).replace('.', '_') + \
                                "_attack_iter_" + str(args.attack_k) + \
-                               "_alpha_" + str(args.alpha).replace('.', '_')
+                               "_alpha_" + str(args.alpha).replace('.', '_') +\
+                               '_optimization_method_' + sign +args.gradient_ascent_method
             if not isdir(args.output_dir):
                 mkdir(args.output_dir)
 
