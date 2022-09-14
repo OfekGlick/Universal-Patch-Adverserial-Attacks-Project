@@ -1,9 +1,11 @@
+import math
+
 import numpy as np
 import torch
 import time
 from tqdm import tqdm
 import cv2
-from attack import Attack
+from attacks.attack import Attack
 
 
 class APGD(Attack):
@@ -12,7 +14,7 @@ class APGD(Attack):
             model,
             criterion,
             test_criterion,
-            data_shape,
+            data_shape, p_1, rho, anneal_method,
             norm='Linf',
             n_iter=20,
             n_restarts=1,
@@ -41,7 +43,22 @@ class APGD(Attack):
                 self.init_pert = torch.tensor(self.init_pert).unsqueeze(0)
             else:
                 self.init_pert = init_pert_transform({'img': self.init_pert})['img'].unsqueeze(0)
-
+        self.anneal_method = anneal_method
+        if self.anneal_method == 'exp':
+            p_prev = 0
+            p = p_1
+            self.w = [0]
+            while self.w[-1] <= n_iter:
+                self.w.append(math.ceil(p * n_iter))
+                next_p = p + max(p - p_prev - 0.03, 0.06)
+                p_prev = p
+                p = next_p
+        if self.anneal_method == 'cosine':
+            self.w = range(0, n_iter, 5)
+        self.checkpoints_params = {}
+        self.improvements = 0
+        self.checkpoint = 1
+        self.rho = rho
 
     def calc_sample_grad_single(self, pert, img1_I0, img2_I0, intrinsic_I0, img1_delta, img2_delta,
                                 scale, y, clean_flow, target_pose, perspective1, perspective2, mask1, mask2,
@@ -142,8 +159,8 @@ class APGD(Attack):
     def perturb(self, data_loader, y_list, eps,
                 targeted=False, device=None, eval_data_loader=None, eval_y_list=None, momentum=0.9,
                 gradient_ascent_method='gradient_ascent', sign=False):
-
         a_abs = np.abs(eps / self.n_iter) if self.alpha is None else np.abs(self.alpha)
+        original_lr = a_abs
         multiplier = -1 if targeted else 1
         print("computing PGD attack with parameters:")
         print("attack random restarts: " + str(self.n_restarts))
@@ -174,6 +191,9 @@ class APGD(Attack):
 
             pert = self.project(pert, eps)
             prev_pert = None
+            self.checkpoints_params[0] = {}
+            self.checkpoints_params[0]['lr'] = a_abs
+
             for k in tqdm(range(self.n_iter)):
                 print(" attack optimization epoch: " + str(k))
                 iter_start_time = time.time()
@@ -213,15 +233,16 @@ class APGD(Attack):
                             best_pert = prev_pert.clone().detach()
                             best_loss_list = eval_loss_list
                             best_loss_sum = eval_loss_tot
+                        self.checkpoints_params[0]['value'] = eval_loss_tot
 
                     eval_loss_tot, eval_loss_list = self.attack_eval(pert, data_shape, eval_data_loader, eval_y_list,
                                                                      device)
-
 
                     if eval_loss_tot > best_loss_sum:
                         best_pert = pert.clone().detach()
                         best_loss_list = eval_loss_list
                         best_loss_sum = eval_loss_tot
+                        self.improvements += 1
                     all_loss.append(eval_loss_list)
                     all_best_loss.append(best_loss_list)
                     traj_loss_mean_list = np.mean(eval_loss_list, axis=0)
@@ -244,7 +265,30 @@ class APGD(Attack):
                     del eval_loss_tot
                     del eval_loss_list
                     torch.cuda.empty_cache()
+                    if k + 1 in self.w:
+                        self.checkpoints_params[self.checkpoint] = {}
+                        self.checkpoints_params[self.checkpoint]['lr'] = a_abs
+                        self.checkpoints_params[self.checkpoint]['value'] = best_loss_sum
+                        if self.condition_1() or self.condition_2():
+                            if self.anneal_method == 'exp':
+                                a_abs /= 2
+                            if self.anneal_method == 'cosine':
+                                a_abs = 0.5 * original_lr * (1 + math.cos(1 + (math.pi * (k + 1) / self.n_iter)))
+                            pert = best_pert.require_grad()
+                            self.improvements = 0
 
             opt_runtime = time.time() - opt_start_time
             print("optimization restart finished, optimization runtime: " + str(opt_runtime))
         return best_pert.detach(), eval_clean_loss_list, all_loss, all_best_loss, best_loss_sum
+
+    def condition_1(self):
+        if self.improvements < self.rho * (self.w[self.checkpoint] - self.w[self.checkpoint - 1]):
+            return True
+        return False
+
+    def condition_2(self):
+        if self.checkpoints_params[self.checkpoint - 1]['lr'] == self.checkpoints_params[self.checkpoint]['lr'] and \
+                self.checkpoints_params[self.checkpoint - 1]['value'] == self.checkpoints_params[self.checkpoint][
+            'value']:
+            return True
+        return False

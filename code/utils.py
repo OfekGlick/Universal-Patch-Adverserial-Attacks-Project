@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from attacks import PGD, Const
+from attacks import PGD, Const, APGD
 import torch.backends.cudnn as cudnn
 import random
 from TartanVO import TartanVO
@@ -97,10 +97,15 @@ def parse_args():
                         help='Trajectory window stride for optimizing attacks (default: whole window)')
     parser.add_argument('--load_attack', default=None,
                         help='path to load previously computed perturbation (default: "")')
-    parser.add_argument('--momentum',type = float,default = 0.9)
-    parser.add_argument('--sign',action='store_true',default=False,help="Flag to use sign gradient or regular gradient")
-    parser.add_argument('--gradient_ascent_method',type=str,default='gradient_ascent',help='Methods for gradient ascent '
-                                                                    'possibilities are:[gradient_ascent,momentum,adam]')
+    parser.add_argument('--momentum', type=float, default=0.9)
+    parser.add_argument('--sign', action='store_true', default=False,
+                        help="Flag to use sign gradient or regular gradient")
+    parser.add_argument('--gradient_ascent_method', type=str, default='gradient_ascent',
+                        help='Methods for gradient ascent '
+                             'possibilities are:[gradient_ascent,momentum,adam]')
+    parser.add_argument('--anneal_method', type=str, default='exp')
+    parser.add_argument('--p_1', type=float, default=0.22)
+    parser.add_argument('--rho',type=float,default=0.5)
     args = parser.parse_args()
     print("args")
     print(args)
@@ -192,9 +197,9 @@ def compute_VO_args(args):
     print("initializing weighted RMS test criterion")
     args.weighted_rms_crit = VOCriterion(t_crit="weighted_rms")
     args.criterions = [args.rms_crit, args.mean_partial_rms_crit,
-                       args.target_rms_crit, args.target_mean_partial_rms_crit,args.weighted_rms_crit]
+                       args.target_rms_crit, args.target_mean_partial_rms_crit, args.weighted_rms_crit]
     args.criterions_names = ["rms_crit", "mean_partial_rms_crit",
-                             "target_rms_crit", "target_mean_partial_rms_crit","weighted_rms"]
+                             "target_rms_crit", "target_mean_partial_rms_crit", "weighted_rms"]
 
     if args.window_size is not None:
         if args.traj_len <= args.window_size:
@@ -222,7 +227,7 @@ def compute_attack_args(args):
         print("loading pre-computed attack from path: " + args.load_attack)
         load_pert_transform = Compose([CropCenter((args.image_height, args.image_width)), ToTensor()])
 
-    attack_dict = {'pgd': PGD, 'const': Const}
+    attack_dict = {'pgd': PGD, 'const': Const, 'apgd': APGD}
     args.attack_name = args.attack
     if args.attack not in attack_dict:
         args.attack = None
@@ -239,7 +244,18 @@ def compute_attack_args(args):
                                           norm=args.attack_norm,
                                           data_shape=(args.traj_len - 1, args.image_height, args.image_width),
                                           pert_path=args.load_attack,
-                                          pert_transform=const_pert_transform)
+                                         pert_transform=const_pert_transform)
+        elif args.attach_name == 'apgd':
+            args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
+                                          norm=args.attack_norm,
+                                          data_shape=(args.traj_len - 1, args.image_height, args.image_width),
+                                          n_iter=args.attack_k, alpha=args.alpha, rand_init=True,
+                                          sample_window_size=args.window_size,
+                                          sample_window_stride=args.window_stride,
+                                          init_pert_path=args.load_attack,
+                                          init_pert_transform=load_pert_transform, p_1=args.p_1,
+                                          anneal_method=args.anneal_method)
+
         else:
             args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
                                           norm=args.attack_norm,
@@ -311,8 +327,8 @@ def compute_output_dir(args):
                 sign = "_unsigned_"
             args.output_dir += "/eps_" + str(args.eps).replace('.', '_') + \
                                "_attack_iter_" + str(args.attack_k) + \
-                               "_alpha_" + str(args.alpha).replace('.', '_') +\
-                               '_optimization_method_' + sign +args.gradient_ascent_method
+                               "_alpha_" + str(args.alpha).replace('.', '_') + \
+                               '_optimization_method_' + sign + args.gradient_ascent_method
             if not isdir(args.output_dir):
                 mkdir(args.output_dir)
 
@@ -347,6 +363,8 @@ def compute_output_dir(args):
 
     print('==> Will write outputs to {}'.format(args.output_dir))
     return args
+
+
 class AdamOptim():
     def __init__(self, eta=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8):
         self.m_dw, self.v_dw = 0, 0
@@ -354,25 +372,25 @@ class AdamOptim():
         self.beta2 = beta2
         self.epsilon = epsilon
         self.eta = eta
+
     def update(self, t, w, dw):
         ## dw, db are from current minibatch
         ## momentum beta 1
         # *** weights *** #
-        self.m_dw = self.beta1*self.m_dw + (1-self.beta1)*dw
-
+        self.m_dw = self.beta1 * self.m_dw + (1 - self.beta1) * dw
 
         ## rms beta 2
         # *** weights *** #
-        self.v_dw = self.beta2*self.v_dw + (1-self.beta2)*(dw**2)
-
+        self.v_dw = self.beta2 * self.v_dw + (1 - self.beta2) * (dw ** 2)
 
         ## bias correction
-        m_dw_corr = self.m_dw/(1-self.beta1**t)
-        v_dw_corr = self.v_dw/(1-self.beta2**t)
+        m_dw_corr = self.m_dw / (1 - self.beta1 ** t)
+        v_dw_corr = self.v_dw / (1 - self.beta2 ** t)
 
         ## update weights and biases
-        w = w - self.eta*(m_dw_corr/(np.sqrt(v_dw_corr)+self.epsilon))
+        w = w - self.eta * (m_dw_corr / (np.sqrt(v_dw_corr) + self.epsilon))
         return w
+
 
 def get_args():
     args = parse_args()
