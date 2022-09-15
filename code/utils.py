@@ -245,7 +245,7 @@ def compute_attack_args(args):
                                           data_shape=(args.traj_len - 1, args.image_height, args.image_width),
                                           pert_path=args.load_attack,
                                          pert_transform=const_pert_transform)
-        elif args.attach_name == 'apgd':
+        elif args.attack_name == 'apgd':
             args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
                                           norm=args.attack_norm,
                                           data_shape=(args.traj_len - 1, args.image_height, args.image_width),
@@ -254,7 +254,7 @@ def compute_attack_args(args):
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
                                           init_pert_transform=load_pert_transform, p_1=args.p_1,
-                                          anneal_method=args.anneal_method)
+                                          anneal_method=args.anneal_method,rho = args.rho)
 
         else:
             args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
