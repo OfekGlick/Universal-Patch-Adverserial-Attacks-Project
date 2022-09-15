@@ -103,9 +103,9 @@ def parse_args():
     parser.add_argument('--gradient_ascent_method', type=str, default='gradient_ascent',
                         help='Methods for gradient ascent '
                              'possibilities are:[gradient_ascent,momentum,adam]')
-    parser.add_argument('--anneal_method', type=str, default='exp')
+    parser.add_argument('--anneal_method', type=str, default=None)
     parser.add_argument('--p_1', type=float, default=0.22)
-    parser.add_argument('--rho',type=float,default=0.5)
+    parser.add_argument('--rho', type=float, default=0.5)
     args = parser.parse_args()
     print("args")
     print(args)
@@ -244,7 +244,7 @@ def compute_attack_args(args):
                                           norm=args.attack_norm,
                                           data_shape=(args.traj_len - 1, args.image_height, args.image_width),
                                           pert_path=args.load_attack,
-                                         pert_transform=const_pert_transform)
+                                          pert_transform=const_pert_transform)
         elif args.attack_name == 'apgd':
             args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
                                           norm=args.attack_norm,
@@ -254,9 +254,9 @@ def compute_attack_args(args):
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
                                           init_pert_transform=load_pert_transform, p_1=args.p_1,
-                                          anneal_method=args.anneal_method,rho = args.rho)
+                                          anneal_method=args.anneal_method, rho=args.rho)
 
-        else:
+        elif args.attack_name == 'pgd':
             args.attack_obj = args.attack(args.model, args.att_criterion, args.att_eval_criterion,
                                           norm=args.attack_norm,
                                           data_shape=(args.traj_len - 1, args.image_height, args.image_width),
@@ -264,7 +264,9 @@ def compute_attack_args(args):
                                           sample_window_size=args.window_size,
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
-                                          init_pert_transform=load_pert_transform)
+                                          init_pert_transform=load_pert_transform,anneal_method = args.anneal_method)
+        else:
+            raise NotImplementedError("No such attack")
 
     return args
 
@@ -328,7 +330,8 @@ def compute_output_dir(args):
             args.output_dir += "/eps_" + str(args.eps).replace('.', '_') + \
                                "_attack_iter_" + str(args.attack_k) + \
                                "_alpha_" + str(args.alpha).replace('.', '_') + \
-                               '_optimization_method_' + sign + args.gradient_ascent_method
+                               '_optimization_method_' + sign + args.gradient_ascent_method + \
+                               '_momentum_' + str(args.momentum)
             if not isdir(args.output_dir):
                 mkdir(args.output_dir)
 

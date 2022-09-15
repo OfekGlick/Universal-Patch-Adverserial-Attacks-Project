@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import torch
 import time
@@ -22,7 +24,7 @@ class PGD(Attack):
             sample_window_stride=None,
             pert_padding=(0, 0),
             init_pert_path=None,
-            init_pert_transform=None):
+            init_pert_transform=None,anneal_method=None):
         super(PGD, self).__init__(model, criterion, test_criterion, norm, data_shape,
                                   sample_window_size, sample_window_stride,
                                   pert_padding, alpha)
@@ -41,6 +43,8 @@ class PGD(Attack):
                 self.init_pert = torch.tensor(self.init_pert).unsqueeze(0)
             else:
                 self.init_pert = init_pert_transform({'img': self.init_pert})['img'].unsqueeze(0)
+        self.anneal_method = anneal_method
+        self.decrease = int(n_iter/4)
 
     def calc_sample_grad_single(self, pert, img1_I0, img2_I0, intrinsic_I0, img1_delta, img2_delta,
                                 scale, y, clean_flow, target_pose, perspective1, perspective2, mask1, mask2,
@@ -143,6 +147,7 @@ class PGD(Attack):
                 gradient_ascent_method='gradient_ascent', sign=False):
 
         a_abs = np.abs(eps / self.n_iter) if self.alpha is None else np.abs(self.alpha)
+        original_lr = a_abs
         multiplier = -1 if targeted else 1
         print("computing PGD attack with parameters:")
         print("attack random restarts: " + str(self.n_restarts))
@@ -205,6 +210,10 @@ class PGD(Attack):
                         best_pert = pert.clone().detach()
                         best_loss_list = eval_loss_list
                         best_loss_sum = eval_loss_tot
+                    if self.anneal_method == 'exp'and (k+1) % self.decrease == 0:
+                        a_abs /= 2
+                    elif self.anneal_method == 'cosine':
+                        a_abs = 0.5 * original_lr * (1 + math.cos(1 + (math.pi * (k + 1) / self.n_iter)))
                     all_loss.append(eval_loss_list)
                     all_best_loss.append(best_loss_list)
                     traj_loss_mean_list = np.mean(eval_loss_list, axis=0)

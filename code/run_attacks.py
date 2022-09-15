@@ -631,30 +631,31 @@ def report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, tr
            frames_delta_ratio_crit_mean, frames_delta_ratio_crit_std
 
 
-def run_attacks_train(args):
-    print("Training and testing an adversarial perturbation on the whole dataset")
-    print("A single single universal will be produced and then tested on the dataset")
-    print("args.attack")
-    print(args.attack)
-    attack = args.attack_obj
-
-    dataset_idx_list, dataset_name_list, traj_name_list, traj_indices, \
-    motions_gt_list, traj_clean_criterions_list, traj_clean_motions = \
-        test_clean_multi_inputs(args)
-
-    print("traj_name_list")
-    print(traj_name_list)
-    motions_target_list = motions_gt_list
-    traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
-    traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list, \
-    traj_clean_weighted_rms_list = tuple(traj_clean_criterions_list)
-    args.old_path = args.output_dir
-    if args.save_results:
-        with open(args.output_dir+'/args.txt','w') as f:
-            for arg in vars(args):
-                f.write(f'{arg} = {getattr(args, arg)}')
-            f.close()
+def run_attacks_train():
     for test_fold_idx in [0, 1, 2]:
+        args = get_args()
+        print("Training and testing an adversarial perturbation on the whole dataset")
+        print("A single single universal will be produced and then tested on the dataset")
+        print("args.attack")
+        print(args.attack)
+        attack = args.attack_obj
+
+        dataset_idx_list, dataset_name_list, traj_name_list, traj_indices, \
+        motions_gt_list, traj_clean_criterions_list, traj_clean_motions = \
+            test_clean_multi_inputs(args)
+
+        print("traj_name_list")
+        print(traj_name_list)
+        motions_target_list = motions_gt_list
+        traj_clean_rms_list, traj_clean_mean_partial_rms_list, \
+        traj_clean_target_rms_list, traj_clean_target_mean_partial_rms_list, \
+        traj_clean_weighted_rms_list = tuple(traj_clean_criterions_list)
+        args.old_path = args.output_dir
+        if args.save_results:
+            with open(args.output_dir+'/args.txt','w') as f:
+                for arg in vars(args):
+                    f.write(f'{arg} = {getattr(args, arg)}\n')
+                f.close()
         args.output_dir = args.old_path + f'/test_{test_fold_idx}'
         try:
             mkdir(args.output_dir)
@@ -793,10 +794,10 @@ def test_clean(args):
 
 
 def main():
-    args = get_args()
-    if args.attack is None:
-        return test_clean(args)
-    return run_attacks_train(args)
+    #args = get_args()
+    # if args.attack is None:
+    #     return test_clean(args)
+    return run_attacks_train()
 
 
 if __name__ == '__main__':

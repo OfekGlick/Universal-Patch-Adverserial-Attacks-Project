@@ -57,7 +57,7 @@ class APGD(Attack):
             self.w = range(0, n_iter, 5)
         self.checkpoints_params = {}
         self.improvements = 0
-        self.checkpoint = 1
+        self.checkpoint = 0
         self.rho = rho
 
     def calc_sample_grad_single(self, pert, img1_I0, img2_I0, intrinsic_I0, img1_delta, img2_delta,
@@ -194,6 +194,13 @@ class APGD(Attack):
             prev_pert = None
             self.checkpoints_params[0] = {}
             self.checkpoints_params[0]['lr'] = a_abs
+            eval_loss_tot, eval_loss_list = self.attack_eval(pert, data_shape, eval_data_loader,
+                                                             eval_y_list,
+                                                             device)
+            if eval_loss_tot > best_loss_sum:
+                best_pert = pert.clone().detach()
+                best_loss_list = eval_loss_list
+                best_loss_sum = eval_loss_tot
 
             for k in tqdm(range(self.n_iter)):
                 print(" attack optimization epoch: " + str(k))
@@ -217,6 +224,12 @@ class APGD(Attack):
                                                                                    clean_flow_list, multiplier, a_abs,
                                                                                    eps, sign,
                                                                                    device, momentum)
+                elif gradient_ascent_method == 'apgd_adam':
+                    pert = self.gradient_ascent_step_with_apgd_adam(pert, data_shape, data_loader,
+                                                                                   y_list,
+                                                                                   clean_flow_list, multiplier, a_abs,
+                                                                                   eps, sign,
+                                                                                   device)
                 else:
                     raise NotImplementedError(f"No gradient ascent method by the name {gradient_ascent_method}")
                 step_runtime = time.time() - iter_start_time
@@ -226,24 +239,18 @@ class APGD(Attack):
                 eval_start_time = time.time()
 
                 with torch.no_grad():
-                    if k == 0:
-                        eval_loss_tot, eval_loss_list = self.attack_eval(prev_pert, data_shape, eval_data_loader,
-                                                                         eval_y_list,
-                                                                         device)
-                        if eval_loss_tot > best_loss_sum:
-                            best_pert = prev_pert.clone().detach()
-                            best_loss_list = eval_loss_list
-                            best_loss_sum = eval_loss_tot
-                        self.checkpoints_params[0]['value'] = eval_loss_tot
 
                     eval_loss_tot, eval_loss_list = self.attack_eval(pert, data_shape, eval_data_loader, eval_y_list,
                                                                      device)
 
                     if eval_loss_tot > best_loss_sum:
                         best_pert = pert.clone().detach()
+
                         best_loss_list = eval_loss_list
                         best_loss_sum = eval_loss_tot
                         self.improvements += 1
+                    if k == 0:
+                        self.checkpoints_params[0]['value'] = best_loss_sum
                     all_loss.append(eval_loss_list)
                     all_best_loss.append(best_loss_list)
                     traj_loss_mean_list = np.mean(eval_loss_list, axis=0)
@@ -267,6 +274,7 @@ class APGD(Attack):
                     del eval_loss_list
                     torch.cuda.empty_cache()
                     if k + 1 in self.w:
+                        self.checkpoint += 1
                         self.checkpoints_params[self.checkpoint] = {}
                         self.checkpoints_params[self.checkpoint]['lr'] = a_abs
                         self.checkpoints_params[self.checkpoint]['value'] = best_loss_sum
@@ -275,8 +283,8 @@ class APGD(Attack):
                                 a_abs /= 2
                             if self.anneal_method == 'cosine':
                                 a_abs = 0.5 * original_lr * (1 + math.cos(1 + (math.pi * (k + 1) / self.n_iter)))
-                            pert = best_pert.require_grad()
-                            self.improvements = 0
+                            best_pert.requires_grad_()
+                        self.improvements = 0
 
             opt_runtime = time.time() - opt_start_time
             print("optimization restart finished, optimization runtime: " + str(opt_runtime))
@@ -284,6 +292,7 @@ class APGD(Attack):
 
     def condition_1(self):
         if self.improvements < self.rho * (self.w[self.checkpoint] - self.w[self.checkpoint - 1]):
+            print(f"condition 1 met")
             return True
         return False
 
@@ -291,5 +300,6 @@ class APGD(Attack):
         if self.checkpoints_params[self.checkpoint - 1]['lr'] == self.checkpoints_params[self.checkpoint]['lr'] and \
                 self.checkpoints_params[self.checkpoint - 1]['value'] == self.checkpoints_params[self.checkpoint][
             'value']:
+            print(f"condition 2 met")
             return True
         return False

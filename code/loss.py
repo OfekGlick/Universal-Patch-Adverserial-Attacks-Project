@@ -166,6 +166,8 @@ class VOCriterion:
             self.calc_t_crit = self.calc_mean_partial_poses_t
         elif t_crit == "weighted_rms":
             self.calc_t_crit = self.calc_weighted_cumul_poses_t
+        elif t_crit == 'reverse_weighted_rms':
+            self.calc_t_crit = self.calc_reverse_weighted_cumul_poses_t
         else:
             self.calc_t_crit = self.calc_cumul_poses_t
 
@@ -244,18 +246,27 @@ class VOCriterion:
         cumul_poses_gt = self.cumulative_poses(rel_poses_gt)
         t_error, target_t_error = self.translation_error(cumul_poses, cumul_poses_gt, target_pose)
         return t_error, target_t_error
+    def calc_reverse_weighted_cumul_poses_t(self, motions, motions_gt, target_pose):
+        rel_poses = self.rtvec_to_pose(motions)
+        rel_poses_gt = self.rtvec_to_pose(motions_gt)
+        cumul_poses = self.cumulative_poses(rel_poses)
+        cumul_poses_gt = self.cumulative_poses(rel_poses_gt)
+        t_error, target_t_error = self.translation_error(cumul_poses, cumul_poses_gt, target_pose)
+        weights = [1/math.log2(i+1) for i in range(1,len(t_error))]
+        weights.reverse()
+        weights = [0.0] + weights
+        weights = torch.tensor(weights)
+        weights = weights.to(t_error.get_device())
+        t_error = weights * t_error
+        return t_error, target_t_error
     def calc_weighted_cumul_poses_t(self, motions, motions_gt, target_pose):
         rel_poses = self.rtvec_to_pose(motions)
         rel_poses_gt = self.rtvec_to_pose(motions_gt)
         cumul_poses = self.cumulative_poses(rel_poses)
         cumul_poses_gt = self.cumulative_poses(rel_poses_gt)
         t_error, target_t_error = self.translation_error(cumul_poses, cumul_poses_gt, target_pose)
-        #weights = [0.0]+[1/math.log2(i+1) for i in range(1,len(t_error))]
-        weights = [1/math.log2(i+1) for i in range(1,len(t_error))]
-        weights.reverse()
-        weights = [0.0] + weights
+        weights = [0.0]+[1/math.log2(i+1) for i in range(1,len(t_error))]
         weights = torch.tensor(weights)
-        #weights = torch.tensor([1/math.log2(i+2) for i in range(len(t_error))])
         weights = weights.to(t_error.get_device())
         t_error = weights * t_error
         return t_error, target_t_error
