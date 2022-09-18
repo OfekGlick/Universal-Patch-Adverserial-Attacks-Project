@@ -632,7 +632,7 @@ def report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, tr
 
 
 def run_attacks_train():
-    for test_fold_idx in [0,1,2,3,4]:
+    for eval_fold_idx in [0,1,2,3,4]:
         args = get_args()
         print("Training and testing an adversarial perturbation on the whole dataset")
         print("A single single universal will be produced and then tested on the dataset")
@@ -656,16 +656,16 @@ def run_attacks_train():
                 for arg in vars(args):
                     f.write(f'{arg} = {getattr(args, arg)}\n')
                 f.close()
-        args.output_dir = args.old_path + f'/test_{test_fold_idx}'
+        args.output_dir = args.old_path + f'/eval_{eval_fold_idx}'
         try:
             mkdir(args.output_dir)
         except FileExistsError:
             pass
-        test_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == test_fold_idx]
-        if test_fold_idx != 4:
-            eval_fold_idx = test_fold_idx + 1
-        else:
-            eval_fold_idx = 0
+        if args.save_best_pert:
+            args.adv_best_pert_dir = args.output_dir + '/adv_best_pert'
+            if not isdir(args.adv_best_pert_dir):
+                print("The pert folder created")
+                mkdir(args.adv_best_pert_dir)
         eval_indices = [traj_idx for traj_idx in traj_indices if dataset_idx_list[traj_idx] == eval_fold_idx]
         eval_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
                                           preprocessed_data=True,
@@ -683,9 +683,9 @@ def run_attacks_train():
                                      shuffle=False, num_workers=args.worker_num)
 
         train_indices = [traj_idx for traj_idx in traj_indices
-                         if (traj_idx not in test_indices and traj_idx not in eval_indices)]
+                         if traj_idx not in eval_indices]
         train_folders_indices = [fold_idx for fold_idx in [0, 1, 2, 3, 4]
-                                 if (fold_idx != test_fold_idx and fold_idx != eval_fold_idx)]
+                                 if  fold_idx != eval_fold_idx]
         train_dataset = args.dataset_class(args.test_dir, processed_data_folder=args.processed_data_dir,
                                            preprocessed_data=True,
                                            transform=args.transform,
@@ -701,8 +701,7 @@ def run_attacks_train():
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size,
                                       shuffle=False, num_workers=args.worker_num)
 
-        print("test_fold_idx")
-        print(test_fold_idx)
+
         print("eval_fold_idx")
         print(eval_fold_idx)
         print("train_folders_indices")
@@ -728,15 +727,15 @@ def run_attacks_train():
         traj_clean_eval_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
                                                                    eval_indices)
 
-        test_dataset_indices = masked_list(dataset_idx_list, test_indices)
-        test_dataset_names = masked_list(dataset_name_list, test_indices)
-        test_traj_names = masked_list(traj_name_list, test_indices)
-        motions_target_test_list = masked_list(motions_target_list, test_indices)
-        traj_clean_test_rms_list = masked_list(traj_clean_rms_list, test_indices)
-        traj_clean_test_mean_partial_rms_list = masked_list(traj_clean_mean_partial_rms_list, test_indices)
-        traj_clean_test_target_rms_list = masked_list(traj_clean_target_rms_list, test_indices)
-        traj_clean_test_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
-                                                                   test_indices)
+        # test_dataset_indices = masked_list(dataset_idx_list, test_indices)
+        # test_dataset_names = masked_list(dataset_name_list, test_indices)
+        # test_traj_names = masked_list(traj_name_list, test_indices)
+        # motions_target_test_list = masked_list(motions_target_list, test_indices)
+        # traj_clean_test_rms_list = masked_list(traj_clean_rms_list, test_indices)
+        # traj_clean_test_mean_partial_rms_list = masked_list(traj_clean_mean_partial_rms_list, test_indices)
+        # traj_clean_test_target_rms_list = masked_list(traj_clean_target_rms_list, test_indices)
+        # traj_clean_test_target_mean_partial_rms_list = masked_list(traj_clean_target_mean_partial_rms_list,
+        #                                                            test_indices)
 
         ##################################################
         best_pert, clean_loss_list, all_loss_list, all_best_loss_list, best_lost_sum = \
@@ -752,10 +751,10 @@ def run_attacks_train():
         # print("all_best_loss_list")
         # print(all_best_loss_list)
         best_loss_list = all_best_loss_list[- 1]
-        print(f"Test folder {test_fold_idx} best_loss_list")
         print(best_loss_list)
 
         if args.save_best_pert:
+            print(args.adv_best_pert_dir )
             save_image(best_pert[0], args.adv_best_pert_dir + '/' + 'adv_best_pert.png')
 
         traj_adv_criterions_list = \
@@ -783,9 +782,7 @@ def run_attacks_train():
         report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
                              traj_clean_rms_list, traj_adv_rms_list,
                              args.save_csv, args.output_dir, crit_str="rms")
-        report_adv_deviation(dataset_idx_list, dataset_name_list, traj_name_list, traj_indices,
-                             traj_clean_weighted_rms_list, traj_adv__weighted_rms_list,
-                             args.save_csv, args.output_dir, crit_str="target_weighted_rms")
+
     return best_lost_sum
 
 

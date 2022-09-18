@@ -54,7 +54,7 @@ class APGD(Attack):
                 p_prev = p
                 p = next_p
         if self.anneal_method == 'cosine':
-            self.w = range(0, n_iter, 5)
+            self.w = range(0, n_iter, int(n_iter/10))
         self.checkpoints_params = {}
         self.improvements = 0
         self.checkpoint = 0
@@ -229,7 +229,7 @@ class APGD(Attack):
                                                                                    y_list,
                                                                                    clean_flow_list, multiplier, a_abs,
                                                                                    eps, sign,
-                                                                                   device)
+                                                                                   momentum,device)
                 else:
                     raise NotImplementedError(f"No gradient ascent method by the name {gradient_ascent_method}")
                 step_runtime = time.time() - iter_start_time

@@ -177,7 +177,6 @@ class PGD(Attack):
                 print(" perturbation initialized to zero")
 
             pert = self.project(pert, eps)
-
             for k in tqdm(range(self.n_iter)):
                 print(" attack optimization epoch: " + str(k))
                 iter_start_time = time.time()
@@ -191,9 +190,10 @@ class PGD(Attack):
                                                                           sign=sign, device=device,
                                                                           momentum=momentum)
                 elif gradient_ascent_method == 'adam':
+
                     pert = self.gradient_ascent_step_with_adam_optimizer(pert, data_shape, data_loader, y_list,
                                                                          clean_flow_list,
-                                                                         eps, sign=sign, device=device)
+                                                                         eps, sign=sign, device=device,momentum = momentum)
                 else:
                     raise NotImplementedError(f"No gradient ascent method by the name {gradient_ascent_method}")
                 step_runtime = time.time() - iter_start_time
@@ -210,7 +210,7 @@ class PGD(Attack):
                         best_pert = pert.clone().detach()
                         best_loss_list = eval_loss_list
                         best_loss_sum = eval_loss_tot
-                    if self.anneal_method == 'exp'and (k+1) % self.decrease == 0:
+                    if self.anneal_method == 'exp' and (k+1) % self.decrease == 0:
                         a_abs /= 2
                     elif self.anneal_method == 'cosine':
                         a_abs = 0.5 * original_lr * (1 + math.cos(1 + (math.pi * (k + 1) / self.n_iter)))

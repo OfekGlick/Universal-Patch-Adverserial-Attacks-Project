@@ -34,6 +34,7 @@ class Attack:
         self.grad_momentum = None
         self.optimizer = AdamOptim(eta=lr)
         self.t = 0
+
     def random_initialization(self, pert, eps):
         if self.norm == 'Linf':
             return torch.empty_like(pert).uniform_(1 - eps, eps)
@@ -451,7 +452,8 @@ class Attack:
         return pert
 
     def gradient_ascent_step_with_adam_optimizer(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                                                 eps, sign, device=None):
+                                                 eps, sign, momentum, device=None):
+        self.optimizer.update_momentum(momentum)
 
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
         if sign:
@@ -565,7 +567,7 @@ class Attack:
 
         return pert
 
-    def gradient_ascent_step_with_apgd_momentum(self, pert,prev_pert, data_shape, data_loader, y_list, clean_flow_list,
+    def gradient_ascent_step_with_apgd_momentum(self, pert, prev_pert, data_shape, data_loader, y_list, clean_flow_list,
                                                 multiplier, a_abs, eps, sign, device=None, momentum=0.5):
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
         if sign:
@@ -622,10 +624,12 @@ class Attack:
                 prev_pert = pert.detach().clone()
                 pert += momentum * (z - pert) + (1 - momentum) * (pert - prev_pert)
             pert = self.project(pert, eps)
-        return pert,prev_pert
+        return pert, prev_pert
+
     def gradient_ascent_step_with_apgd_adam(self, pert, data_shape, data_loader, y_list, clean_flow_list,
-                                                multiplier, a_abs, eps, sign, device=None):
+                                            multiplier, a_abs, eps, sign, momentum, device=None):
         self.optimizer.update_lr(a_abs)
+        self.optimizer.update_momentum(momentum)
         pert_expand = pert.expand(data_shape[0], -1, -1, -1).to(device)
         if sign:
             grad_tot = torch.zeros_like(pert, requires_grad=False)
@@ -710,5 +714,8 @@ class AdamOptim():
         ## update weights and biases
         w = w + self.eta * (m_dw_corr / (torch.sqrt(v_dw_corr) + self.epsilon))
         return w
-    def update_lr(self,eta):
+
+    def update_lr(self, eta):
         self.eta = eta
+    def update_momentum(self,momentum):
+        self.beta1 = momentum

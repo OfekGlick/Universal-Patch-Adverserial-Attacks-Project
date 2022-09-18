@@ -264,7 +264,7 @@ def compute_attack_args(args):
                                           sample_window_size=args.window_size,
                                           sample_window_stride=args.window_stride,
                                           init_pert_path=args.load_attack,
-                                          init_pert_transform=load_pert_transform,anneal_method = args.anneal_method)
+                                          init_pert_transform=load_pert_transform, anneal_method=args.anneal_method)
         else:
             raise NotImplementedError("No such attack")
 
@@ -332,6 +332,8 @@ def compute_output_dir(args):
                                "_alpha_" + str(args.alpha).replace('.', '_') + \
                                '_optimization_method_' + sign + args.gradient_ascent_method + \
                                '_momentum_' + str(args.momentum)
+            if args.anneal_method is not None:
+                args.output_dir += '_anneal_' + args.anneal_method
             if not isdir(args.output_dir):
                 mkdir(args.output_dir)
 
