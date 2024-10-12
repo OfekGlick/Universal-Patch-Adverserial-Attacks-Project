@@ -1,6 +1,6 @@
 # Universal-Patch-Adverserial-Attacks-Project
-Deep Learning final project  
 ### Structure of folder:  
+
 In src there is one folder called Universal-Patch-Adverserial-Attacks-Project.
 Inside  Universal-Patch-Adverserial-Attacks-Project folder there are 2 folders:  
 * code- contains all the relevent code for the project.
